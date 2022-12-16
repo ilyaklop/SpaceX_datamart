@@ -6,8 +6,9 @@ import psycopg2.extras
 
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from config import DB_NAME, USER, PASS, HOST, PORT, QUERY_MISSIONS
-from model import Missions, Mission_manufactures, Payloads, Base
+from config import DB_NAME, USER, PASS, HOST, PORT, QUERY_MISSIONS, QUERY_LAUNCHES, QUERY_ROCKETS
+from model import Missions, MissionManufactures, Payloads, Base, MissionPayloads, LaunchMissions, Launches
+from model import LaunchSites, Links, LaunchPhotos, Rockets, LaunchRocket
 from sqlalchemy.orm import sessionmaker
 import logging
 
@@ -48,26 +49,57 @@ def fill_mission_data(session):
     for mission in mission_item:
         payload_data = [Payloads(payload) for payload in mission['payloads'] if payload]
         mission_data = Missions(mission)
-        for pld in payload_data:
-            add_object(pld, Payloads)
-            mission_data.payload_id.append(pld)
         session.add(mission_data)
         session.commit()
+        for pld in payload_data:
+            add_object(pld, Payloads)
+            mis_pay = MissionPayloads(mission['id'], pld.id)
+            session.add(mis_pay)
+        session.commit()
         for manufacturer in mission['manufacturers']:
-            mis_manu_data = Mission_manufactures(mission['id'], manufacturer)
+            mis_manu_data = MissionManufactures(mission['id'], manufacturer)
             session.add(mis_manu_data)
         session.commit()
-        session.close()
+        #session.close()
 
 
-def fill_rocket_data():
+def fill_rocket_data(session):
     """Load all data connected with rockets"""
-    pass
+    response = call_post(QUERY_ROCKETS)
+    rocket_item = (entity for entity in json.loads(response.text)['data']['rockets'])
+    for rocket_item in rocket_item:
+        rocket_data = Rockets(rocket_item)
+        session.add(rocket_data)
+        session.commit()
 
 
-def fill_launches_data():
+def fill_launches_data(session):
     """Load all data connected with launches"""
-    pass
+    response = call_post(QUERY_LAUNCHES)
+    launch_item = (entity for entity in json.loads(response.text)['data']['launches'])
+    for launch in launch_item:
+        launch_data = Launches(launch)
+        sites_data = LaunchSites(launch['id'], launch['launch_site'])
+        links_data = Links(launch['id'], launch['links'])
+        launch_rocket = LaunchRocket(launch['id'], launch['rocket']['rocket']['id'])
+        #session.add(launch_data) походу тут дубли, исп функциию
+        #session.commit()
+        add_object(launch_data, Launches)
+        session.add(sites_data)
+        session.add(links_data)
+        session.add(launch_rocket)
+        session.commit()
+        if len(launch['links']['flickr_images']) > 0:
+            for image in launch['links']['flickr_images']:
+                photos = LaunchPhotos(launch['id'], image)
+                session.add(photos)
+            session.commit()
+        if len(launch['mission_id']) > 0:
+            for item in launch['mission_id']:
+                launch_mission = LaunchMissions(launch['id'], item)
+                session.add(launch_mission)
+            session.commit()
+    session.close()
 
 
 def get_tables(connection):
@@ -93,8 +125,10 @@ if __name__ == "__main__":
     Base.metadata.create_all(spaceX_engine)
     session = Session()
     fill_mission_data(session)
-    fill_rocket_data()
-    fill_launches_data()
+    fill_rocket_data(session)
+    fill_launches_data(session)
+
+    #даблчек - удалить
     try:
         conn = psycopg2.connect(dbname=DB_NAME, host=HOST, user=USER, password=PASS)#"dbname=codeinpython host='localhost' user='chris' password='chris'"
         tables = get_tables(conn)
@@ -102,14 +136,14 @@ if __name__ == "__main__":
         print_tables(tables)
         cursor = conn.cursor()
         try:
-            cursor.execute("Select * from public.missions_payloads")
+            cursor.execute("Select * from public.launch_missions")
             tmp = (cursor.fetchall())
             for i in tmp:
                 print(i)
         except Exception as e:
             print('Error when MISSIONS: ', e)
         try:
-            cursor.execute("Select distinct(id) from public.payloads")
+            cursor.execute("Select * from public.launch_rocket limit 10")
             tmp = (cursor.fetchall())
             for i in tmp:
                 print(i)
