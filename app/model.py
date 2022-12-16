@@ -1,6 +1,6 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, String, Float, Table, ForeignKey, Text, Integer
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 
 Base = declarative_base()
 
@@ -10,13 +10,14 @@ missions_payloads = Table("missions_payloads", Base.metadata,
 
 class Missions(Base):
     __tablename__ = 'missions'
-    id = Column(String(50), primary_key=True)
+    id = Column(String(50), primary_key=True, unique=True)
     name = Column(String(255))
     website = Column(String(255))
     twitter = Column(String(255))
     description = Column(Text)
     wikipedia = Column(String(255))
-    payload_id = relationship("Payloads", secondary=missions_payloads)
+    payload_id = relationship("Payloads", secondary=missions_payloads, backref=backref('payloads', lazy='dynamic'),
+                              single_parent=True)
 
     def __init__(self, mission_data):
         self.id = mission_data['id']
@@ -49,7 +50,7 @@ class Mission_manufactures(Base):
 
 class Payloads(Base):
     __tablename__ = 'payloads'
-    id = Column(String(50), primary_key=True)
+    id = Column(String(50), primary_key=True, unique=True)
     manufacturer = Column(String(255))
     orbit = Column(String(255))
     nationality = Column(String(255))
