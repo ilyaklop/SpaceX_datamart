@@ -1,7 +1,7 @@
 DB_NAME = 'spaceX'
 USER = 'iliaklop'
 PASS = 'postpass'
-HOST = 'db'
+HOST = 'postgres'
 PORT = '5432'
 
 QUERY_MISSIONS = """{
