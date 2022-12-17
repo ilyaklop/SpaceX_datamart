@@ -142,7 +142,7 @@ if __name__ == "__main__":
         except Exception as e:
             print('Error when MISSIONS: ', e)
         try:
-            cursor.execute("Select * from public.missions limit 15")
+            cursor.execute("Select * from public.rockets limit 5")
             tmp = (cursor.fetchall())
             for i in tmp:
                 print(i)

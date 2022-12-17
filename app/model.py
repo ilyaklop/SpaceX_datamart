@@ -86,7 +86,7 @@ class Launches(Base):
     mission_name = Column(String(255))
     static_fire_date_unix = Column(Integer)
     static_fire_date_utc = Column(TIMESTAMP)
-    tentative_max_precision =Column(String(255))
+    tentative_max_precision = Column(String(255))
     upcoming = Column(Boolean)
 
     def __init__(self, launches_data):
