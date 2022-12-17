@@ -6,3 +6,8 @@ services:
     build: ./app/
     depends_on:
       - "db"
+  dm :
+    build: ./datamarts/
+    depends_on:
+      - "db"
+      - "app"
