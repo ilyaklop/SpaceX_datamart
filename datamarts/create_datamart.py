@@ -12,23 +12,23 @@ spaceX_engine = create_engine('postgresql+psycopg2://{}:{}@{}:{}/{}'.format(USER
 
 def mission_names(engine):
     """Тестовая витрина. Названия миссий могут изменятся от запуска к запуску - собираем все названия"""
-    create_table_sql = """create table if not exist DMMissionNames (mission_id text,
+    create_table_sql = """create table if not exists dm_mission_names (mission_id text,
                                           launch_id integer,
                                           m_mission_name text,
                                           l_mission_name text);
     """
     engine.execute(create_table_sql)
-    fill_in_data_sql = """INSERT INTO DMMissionNames (
-                          select jm.mission_id as mission_id, l.id as launch_id, jm.mission_name as m_mission_name, 
+    fill_in_data_sql = """INSERT INTO dm_mission_names (
+                          select lm.mission_id as mission_id, l.id as launch_id, m.name as m_mission_name, 
                                   l.mission_name as l_mission_name
-                          from (missions m inner join launch_missions lm on m.id==lm.mission_id) jm inner join 
-                          launches l on jm.launch_id==l.id);"""
+                          from missions m inner join launch_missions lm on m.id=lm.mission_id inner join 
+                          launches l on lm.launch_id=l.id);"""
     engine.execute(fill_in_data_sql)
 
 
 def publications(engine):
     """Витрина для отображения публикаций"""
-    create_table_sql = """create table if not exist DMPublications (mission_id text,
+    create_table_sql = """create table if not exists DMPublications (mission_id text,
                                           n_launches integer
                                           articles integer
                                           wiki integer,
@@ -65,13 +65,13 @@ def print_tables(tables):
         print("{}.{}".format(row["table_schema"], row["table_name"]))
 
 
-if __name__ == "__maine__":
+if __name__ == "__main__":
     logger.warning("Container alive")
     try:
         mission_names(spaceX_engine)
-        logger.info("Table DMMissionNames was created successfully")
+        logger.warning("Table DMMissionNames was created successfully")
     except Exception as e:
-        logger.info("Table DMMissionNames was failed: ", e)
+        logger.warning("Table DMMissionNames was failed: ", e)
 
     try:
         conn = psycopg2.connect(dbname=DB_NAME, host=HOST, user=USER, password=PASS)#"dbname=codeinpython host='localhost' user='chris' password='chris'"
@@ -80,7 +80,7 @@ if __name__ == "__maine__":
         print_tables(tables)
         cursor = conn.cursor()
         try:
-            cursor.execute("Select * from public.DMMissionNames")
+            cursor.execute("Select * from public.dm_mission_names")
             tmp = (cursor.fetchall())
             for i in tmp:
                 print(i)
