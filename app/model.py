@@ -16,7 +16,7 @@ class Missions(Base):
 
     def __init__(self, mission_data):
         self.id = mission_data['id']
-        self.title = mission_data['name']
+        self.name = mission_data['name']
         self.website = mission_data['website']
         self.twitter = mission_data['twitter']
         self.description = mission_data['description']
