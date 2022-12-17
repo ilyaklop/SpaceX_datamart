@@ -121,7 +121,6 @@ def print_tables(tables):
         print("{}.{}".format(row["table_schema"], row["table_name"]))
 
 if __name__ == "__main__":
-    query_list = [QUERY_MISSIONS]
     Base.metadata.create_all(spaceX_engine)
     session = Session()
     fill_mission_data(session)
@@ -143,7 +142,7 @@ if __name__ == "__main__":
         except Exception as e:
             print('Error when MISSIONS: ', e)
         try:
-            cursor.execute("Select * from public.launch_rocket limit 10")
+            cursor.execute("Select * from public.rockets limit 5")
             tmp = (cursor.fetchall())
             for i in tmp:
                 print(i)

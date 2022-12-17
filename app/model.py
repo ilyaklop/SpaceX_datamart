@@ -16,7 +16,7 @@ class Missions(Base):
 
     def __init__(self, mission_data):
         self.id = mission_data['id']
-        self.title = mission_data['name']
+        self.name = mission_data['name']
         self.website = mission_data['website']
         self.twitter = mission_data['twitter']
         self.description = mission_data['description']
@@ -86,7 +86,7 @@ class Launches(Base):
     mission_name = Column(String(255))
     static_fire_date_unix = Column(Integer)
     static_fire_date_utc = Column(TIMESTAMP)
-    tentative_max_precision =Column(String(255))
+    tentative_max_precision = Column(String(255))
     upcoming = Column(Boolean)
 
     def __init__(self, launches_data):
