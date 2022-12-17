@@ -1,21 +1,23 @@
 version: "3.9"
 x-airflow-common:
   &airflow-common
-  image: ${AIRFLOW_IMAGE_NAME:-spacex:latest}
+  image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:latest}
+  # build: .
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://iliaklop:postpass@postgres:5432/spaceX
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://iliaklop:postpass@postgres/airflow
     # For backward compatibility, with Airflow <2.3
-    AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://iliaklop:postpass@postgres:5432/spaceX
+    AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://iliaklop:postpass@postgres/airflow
     AIRFLOW__CORE__FERNET_KEY: ''
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
+    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
   volumes:
-    - ./datamarts/dags:/opt/airflow/dags
-    - ./datamarts/logs:/opt/airflow/logs
-    - ./datamarts/plugins:/opt/airflow/plugins
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./plugins:/opt/airflow/plugins
   user: "${AIRFLOW_UID:-50000}:0"
 services:
   postgres:
@@ -33,10 +35,6 @@ services:
       interval: 5s
       retries: 5
     restart: always
-  app :
-    build: ./app/
-    depends_on:
-      - "postgres"
   webserver:
     <<: *airflow-common
     command: webserver
@@ -146,3 +144,6 @@ services:
       - bash
       - -c
       - airflow
+
+volumes:
+  postgres-db-volume:
