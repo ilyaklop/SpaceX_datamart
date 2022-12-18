@@ -16,12 +16,13 @@ def mission_names(engine):
         create_table_sql = """create table if not exists dm_mission_names (mission_id text,
                                               launch_id integer,
                                               m_mission_name text,
-                                              l_mission_name text);
+                                              l_mission_name text,
+                                              load_date timestamp);
         """
         engine.execute(create_table_sql)
         fill_in_data_sql = """INSERT INTO dm_mission_names (
                                   select lm.mission_id as mission_id, l.id as launch_id, m.name as m_mission_name, 
-                                          l.mission_name as l_mission_name
+                                          l.mission_name as l_mission_name, current_date as load_date
                                   from missions m inner join launch_missions lm on m.id=lm.mission_id inner join 
                                   launches l on lm.launch_id=l.id);"""
         engine.execute(fill_in_data_sql)
@@ -32,9 +33,11 @@ def mission_names(engine):
 
 
 def publications(engine):
-    """Витрина для отображения публикаций. Так как каждая сущность в основной таблице имеет собственную ссылку на вики,
-    было решено посчитать относителльно самой широкой сущности - миссий. А наиболее полные сведения о разного рода
-    публикациях имеются для каждого запуска."""
+    """Витрина для отображения публикаций. Create datamart, that calculates number of publications for missions, rockets
+     and launches. Считаем, что публикации - это публичная информация, поэтому включают и видео, и фото, и статьи.
+     Относительно запусков связь очевидна, поэтому интереснее свести данные по миссиям.
+     Для каждой миссии считаеются количество собственных статей, количество запусков, и публикаций, связанных с этими
+     запусками."""
     try:
         create_table_sql = """create table if not exists dm_publications (mission_id text, mission_name text,
                                               m_wiki integer,
@@ -42,7 +45,8 @@ def publications(engine):
                                               articles integer,
                                               launches_wiki integer,
                                               video integer,
-                                              photos integer);
+                                              photos integer,
+                                              load_date timestamp);
         """
         engine.execute(create_table_sql)
         fill_in_data_sql = """INSERT INTO dm_publications ( Select m.id as mission_id, m.name as mission_name,
@@ -51,7 +55,8 @@ def publications(engine):
                 count(distinct l.article_link) as articles,
                 count(distinct l.wikipedia) as launches_wiki,
                 count(distinct l.video_link) as video,
-                count(distinct p.flickr_images) as photos
+                count(distinct p.flickr_images) as photos,
+                current_date as load_date
                 from missions m left join launch_missions lm on m.id=lm.mission_id left join links l on 
                 lm.launch_id=l.launch_id left join launch_photos p on l.launch_id=p.launch_id
                 group by m.id, m.name
@@ -75,7 +80,8 @@ def missions_general(engine):
                                                                               start_date timestamp,
                                                                               status text,
                                                                               success_launches integer,
-                                                                              failed_launches integer);
+                                                                              failed_launches integer,
+                                                                              load_date timestamp);
         """
         engine.execute(create_table_sql)
         fill_in_data_sql = """
@@ -90,7 +96,8 @@ def missions_general(engine):
                                  ELSE 'unknown'
                             END as status,
                             count(CASE WHEN tmp.launch_success THEN 1 END) as success_launches,
-                            count(CASE WHEN tmp.launch_success = FALSE THEN 1 END) as failed_launches
+                            count(CASE WHEN tmp.launch_success = FALSE THEN 1 END) as failed_launches,
+                            current_date as load_date
                             from (select m.id as mission_id, m.name as mission_name, l.id as launch_id, 
                           l.launch_success as launch_success, l.upcoming as upcoming, l.launch_date_local as start_date
                           from missions m left join launch_missions lm on m.id=lm.mission_id left join launches l on
@@ -98,6 +105,35 @@ def missions_general(engine):
                             on r.rocket_id=rr.id
                             group by tmp.mission_id, tmp.mission_name, tmp.upcoming, tmp.launch_success
                             order by tmp.mission_id, min(tmp.start_date));"""
+        engine.execute(fill_in_data_sql)
+    except IntegrityError as e:
+        logger.error(e.orig)
+    except Exception as e:
+        logger.error(e)
+
+
+def rockets_general(engine):
+    """Витрина для отображения сводной инфы о ракетах. Количество запусков, в скольких миссиях участвовал,
+    дата первого полета, дата последнего полета"""
+    try:
+        create_table_sql = """create table if not exists dm_rockets_general ( rocket_id text,
+                                                                              rocket_name text,
+                                                                              n_launches integer,
+                                                                              n_missions integer,
+                                                                              first_launch_date timestamp,
+                                                                              last_launch_date timestamp,
+                                                                              active boolean,
+                                                                              load_date timestamp
+                                                                              );
+        """
+        engine.execute(create_table_sql)
+        fill_in_data_sql = """INSERT INTO dm_rockets_general ( Select r.id as rocket_id, r.name as rocket_name,
+        count(distinct lr.launch_id) as n_launches, count(distinct lm.mission_id) as n_missions,
+        min(l.launch_date_local) as first_launch_date, max(l.launch_date_local) as last_launch_date, r.active,
+        current_date as load_date
+        from rockets r left join launch_rocket lr on r.id=lr.rocket_id  left join launches l on lr.launch_id=l.id
+        left join launch_missions lm on l.id=lm.launch_id
+        group by r.id, r.name, r.active) """
         engine.execute(fill_in_data_sql)
     except IntegrityError as e:
         logger.error(e.orig)
@@ -128,6 +164,7 @@ if __name__ == "__main__":
     mission_names(spaceX_engine)
     publications(spaceX_engine)
     missions_general(spaceX_engine)
+    rockets_general(spaceX_engine)
     try:
         conn = psycopg2.connect(dbname=DB_NAME, host=HOST, user=USER, password=PASS)
         tables = get_tables(conn)
@@ -151,6 +188,14 @@ if __name__ == "__main__":
         try:
             print("Try to fetch missions_general")
             cursor.execute("Select * from public.dm_missions_general limit 5;")
+            tmp = (cursor.fetchall())
+            for i in tmp:
+                print(i)
+        except Exception as e:
+            print('Error: ', e)
+        try:
+            print("Try to fetch rockets_general")
+            cursor.execute("Select * from public.dm_rockets_general limit 5;")
             tmp = (cursor.fetchall())
             for i in tmp:
                 print(i)
