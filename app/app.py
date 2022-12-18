@@ -127,15 +127,15 @@ if __name__ == "__main__":
     fill_rocket_data(session)
     fill_launches_data(session)
 
-    #даблчек - удалить
+    #даблчек -  можно удалить
     try:
-        conn = psycopg2.connect(dbname=DB_NAME, host=HOST, user=USER, password=PASS)#"dbname=codeinpython host='localhost' user='chris' password='chris'"
+        conn = psycopg2.connect(dbname=DB_NAME, host=HOST, user=USER, password=PASS)
         tables = get_tables(conn)
         print("codeinpython Tables\n===================\n")
         print_tables(tables)
         cursor = conn.cursor()
         try:
-            cursor.execute("Select * from public.launch_missions")
+            cursor.execute("Select * from public.missions limit 5")
             tmp = (cursor.fetchall())
             for i in tmp:
                 print(i)

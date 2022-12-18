@@ -1,6 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, String, Float, ForeignKey, Text, Integer, Boolean, TIMESTAMP, Date
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship
+import datetime
 
 Base = declarative_base()
 
@@ -13,6 +14,7 @@ class Missions(Base):
     twitter = Column(String(255))
     description = Column(Text)
     wikipedia = Column(String(255))
+    load_date = Column(TIMESTAMP)
 
     def __init__(self, mission_data):
         self.id = mission_data['id']
@@ -21,6 +23,7 @@ class Missions(Base):
         self.twitter = mission_data['twitter']
         self.description = mission_data['description']
         self.wikipedia = mission_data['wikipedia']
+        self.load_date = datetime.datetime.today().date()
 
 
 class MissionManufactures(Base):
@@ -46,6 +49,7 @@ class Payloads(Base):
     mass_lbs = Column(Float)
     type = Column(String(255))
     reused = Column(Boolean)
+    load_date = Column(TIMESTAMP)
 
     def __init__(self, payload_data):
         self.id = payload_data['id']
@@ -56,6 +60,7 @@ class Payloads(Base):
         self.mass_lbs = payload_data['payload_mass_lbs']
         self.type = payload_data['payload_type']
         self.reused = payload_data['reused']
+        self.load_date = datetime.datetime.today().date()
 
 
 class MissionPayloads(Base):
@@ -88,6 +93,7 @@ class Launches(Base):
     static_fire_date_utc = Column(TIMESTAMP)
     tentative_max_precision = Column(String(255))
     upcoming = Column(Boolean)
+    load_date = Column(TIMESTAMP)
 
     def __init__(self, launches_data):
         self.id = launches_data['id']
@@ -103,7 +109,7 @@ class Launches(Base):
         self.launch_date_unix = launches_data['launch_date_unix']
         self.launch_date_local = launches_data['launch_date_local']
         self.details = launches_data['details']
-
+        self.load_date = datetime.datetime.today().date()
 
 class LaunchSites(Base):
     __tablename__ = 'launch_sites'
@@ -203,6 +209,7 @@ class Rockets(Base):
     success_rate_pct = Column(Integer)
     type = Column(String(255))
     wikipedia = Column(String(255))
+    load_date = Column(TIMESTAMP)
 
     def __init__(self, rocket_data):
         self.id = rocket_data['id']
@@ -226,7 +233,7 @@ class Rockets(Base):
         self.success_rate_pct = rocket_data['success_rate_pct']
         self.type = rocket_data['type']
         self.wikipedia = rocket_data['wikipedia']
-
+        self.load_date = datetime.datetime.today().date()
 
 class LaunchRocket(Base):
     __tablename__ = 'launch_rocket'
